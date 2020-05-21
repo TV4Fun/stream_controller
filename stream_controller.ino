@@ -1,3 +1,4 @@
+// #define DEBUG_PINS  // Use to debug individual readings from each pin
 #define DEBUG_FULL
 #define DEBUG
 const byte kBaseWaterPin = 2;
@@ -28,13 +29,9 @@ float pendingAdjustments = 0.0;
 long toMove = 0;
 float fillRate = 0.0;
 
-#ifdef DEBUG
+#ifdef DEBUG_PINS
 void printPinOutputs() {
     for (byte pin = kBaseWaterPin; pin <= kMaxWaterPin; ++pin) {
-      //Serial.print("Pin ");
-      //Serial.print(pin);
-      //Serial.print(": ");
-      //Serial.println(digitalRead(pin));
       if (digitalRead(pin) == HIGH)
         Serial.print(pin);
       else
@@ -71,8 +68,8 @@ byte getWaterLevel() {
   float totalWaterLevel = 0.0;
   
   for (int i = 0; i < kNumReadings; ++i) {
-    #ifdef DEBUG
-      //printPinOutputs();
+    #ifdef DEBUG_PINS
+      printPinOutputs();
     #endif
     int waterLevel = 1;
     for (byte pin = kBaseWaterPin; pin <= kMaxWaterPin; ++pin) {
@@ -154,7 +151,9 @@ void setup() {
     
 #ifdef DEBUG
   Serial.begin(9600);
+#  ifdef DEBUG_PINS
   printPinOutputs();
+#  endif
   Serial.println("Started.");
 #endif
 
