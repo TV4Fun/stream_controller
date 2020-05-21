@@ -1,6 +1,5 @@
 // #define DEBUG_PINS  // Use to debug individual readings from each pin
-#define DEBUG_FULL
-#define DEBUG
+#define DEBUG_VARS  // Use to debug full set of variables
 const byte kBaseWaterPin = 2;
 const byte kMaxWaterPin = 13;
 const byte kShutPin = A1;
@@ -74,7 +73,7 @@ byte getWaterLevel() {
 }
 
 void openValve() {
-#ifdef DEBUG_FULL
+#ifdef DEBUG_VARS
   Serial.println("openValve");
 #endif
   digitalWrite(kShutPin, LOW);
@@ -83,7 +82,7 @@ void openValve() {
 }
 
 void shutValve() {
-#ifdef DEBUG_FULL
+#ifdef DEBUG_VARS
   Serial.println("shutValve");
 #endif
   digitalWrite(kShutPin, HIGH);
@@ -92,7 +91,7 @@ void shutValve() {
 }
 
 void stopValve() {
-#ifdef DEBUG_FULL
+#ifdef DEBUG_VARS
   Serial.println("stopValve");
 #endif
   digitalWrite(kMovePin, LOW);
@@ -100,7 +99,7 @@ void stopValve() {
 }
 
 void moveValve(long ms) {
-#ifdef DEBUG_FULL
+#ifdef DEBUG_VARS
   Serial.print("moveValve: ");
   Serial.println(ms);
 #endif
@@ -121,12 +120,12 @@ void setup() {
   for (byte pin = kBaseWaterPin; pin <= kMaxWaterPin; ++pin)
     pinMode(pin, INPUT_PULLUP);
     
-#ifdef DEBUG
+#if defined(DEBUG_VARS) || defined(DEBUG_PINS)
   Serial.begin(9600);
-#  ifdef DEBUG_PINS
-  printPinOutputs();
-#  endif
   Serial.println("Started.");
+#endif
+#ifdef DEBUG_PINS
+  printPinOutputs();
 #endif
 
   getWaterLevel();
@@ -136,7 +135,7 @@ void setup() {
 void handleChange() {
   float targetFillRate = (float)(kTargetWaterLevel - lastWaterLevel) / kStreamLagMillis;
   float targetAdjustment = kValveMoveTimeMillis * (targetFillRate - fillRate) / kFullOpenFillRate - pendingAdjustments - toMove;
-#ifdef DEBUG_FULL
+#ifdef DEBUG_VARS
   Serial.print("toMove: ");
   Serial.println(toMove);
   Serial.print("lastWaterLevel: ");
