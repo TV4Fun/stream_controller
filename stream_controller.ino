@@ -44,26 +44,6 @@ void printPinOutputs() {
 #endif
 
 byte getWaterLevel() {
-  /*byte waterLevel;
-  bool validRead;
-  do {
-#ifdef DEBUG
-    printPinOutputs();
-#endif
-    delay(10);
-    waterLevel = kMaxWaterPin + 1;
-    validRead = true;
-    bool lastWasHigh = false;
-    for (byte pin = kMaxWaterPin; pin >= kBaseWaterPin; --pin) {
-      bool isHigh = digitalRead(pin) == HIGH;
-      if (isHigh && !lastWasHigh)
-        waterLevel = kMaxWaterPin + kBaseWaterPin - pin;
-      else if (!isHigh && lastWasHigh)
-        validRead = false;
-      lastWasHigh = isHigh;
-    }
-  } while (!validRead);*/
-
   // Average over multiple reads for error reduction.
   float totalWaterLevel = 0.0;
   
@@ -124,14 +104,6 @@ void moveValve(long ms) {
   Serial.print("moveValve: ");
   Serial.println(ms);
 #endif
-  /*ms = constrain(ms, -kValveMoveTimeMillis, kValveMoveTimeMillis);  // Avoid making ridiculously large adjustments.
-  if (ms < 0)
-    shutValve();
-  else
-    openValve();
-  delay(abs(ms));
-  stopValve();
-  pendingAdjustments += ms;*/
   toMove = constrain(toMove + ms, -kValveMoveTimeMillis, kValveMoveTimeMillis);  // Avoid making ridiculously large adjustments.
   if (toMove <= -kAdjDeadZone)
     shutValve();
@@ -177,7 +149,6 @@ void handleChange() {
   Serial.println(targetAdjustment);
   Serial.print("pendingAdjustments: ");
   Serial.println(pendingAdjustments);
-
 #endif
   moveValve(targetAdjustment);
 }
