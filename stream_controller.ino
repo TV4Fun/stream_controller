@@ -5,15 +5,12 @@ const byte kMaxWaterPin = 13;
 const byte kShutPin = A1;
 const byte kMovePin = A0;
 
-const int kNumReadings = 3;  // Number of readings to average over for error correction
-const int kReadingDelayMillis = 1;
-const int kPollingInterval = 50;  // Millisecond delay between updates
-
 const byte kTargetWaterLevel = 9;
 const float kStreamLagMillis = 35000.0;  // Time from when a valve is adjusted to when we expect to see a change.
 const float kValveMoveTimeMillis = 3500.0;  // Time to fully open or shut the valve
 const int kAdjDeadZone = 250;  // Set a minimum adjustment to avoid making a lot of tiny changes
 const float kFullOpenFillRate = 15.0 / 45000.0;
+const float kReadingAlpha = 0.1;  // Blend reading changes to reduce noise. 1 -> Always use latest reading.
 
 enum {
   STOPPED = 0,
@@ -21,8 +18,7 @@ enum {
   OPENING = 1
 } valveMotionState = STOPPED;
 
-byte lastWaterLevel = 0;
-unsigned long lastChangeTimeMillis = 0;
+float lastWaterLevel = 0.0;
 unsigned long lastUpdateTimeMillis = 0;
 float pendingAdjustments = 0.0;
 long toMove = 0;
@@ -42,32 +38,24 @@ void printPinOutputs() {
 }
 #endif
 
-byte getWaterLevel() {
-  // Average over multiple reads for error reduction.
-  float totalWaterLevel = 0.0;
-  
-  for (int i = 0; i < kNumReadings; ++i) {
-    #ifdef DEBUG_PINS
-      printPinOutputs();
-    #endif
-    int waterLevel = 1;
-    for (byte pin = kBaseWaterPin; pin <= kMaxWaterPin; ++pin) {
-      if (digitalRead(pin) == LOW)
-        ++waterLevel;
-    }
-    totalWaterLevel += waterLevel;
-    delay(kReadingDelayMillis);
+float getWaterLevel(unsigned long deltaT) {
+  #ifdef DEBUG_PINS
+    printPinOutputs();
+  #endif
+  int waterLevel = 1;
+  for (byte pin = kBaseWaterPin; pin <= kMaxWaterPin; ++pin) {
+    if (digitalRead(pin) == LOW)
+      ++waterLevel;
   }
-  byte waterLevel = round(totalWaterLevel / kNumReadings);
-
-  if (abs(waterLevel - lastWaterLevel) >= 2) {
-    unsigned long changeTime = millis();
-    unsigned long deltaT = changeTime - lastChangeTimeMillis;
-    fillRate = (float)(waterLevel - lastWaterLevel) / (float)(deltaT);
-    lastWaterLevel = waterLevel;
-    lastChangeTimeMillis = changeTime;
-  } else if ((waterLevel < lastWaterLevel && fillRate > 0.0) || (waterLevel > lastWaterLevel && fillRate < 0.0))
-    fillRate = 0.0;
+  float waterLevelReading = kReadingAlpha * (float)waterLevel + (1.0 - kReadingAlpha) * lastWaterLevel;
+#ifdef DEBUG_VARS
+  Serial.print("waterLevel: ");
+  Serial.println(waterLevel);
+  Serial.print("waterLevelReading: ");
+  Serial.println(waterLevelReading);
+#endif
+  fillRate = (waterLevelReading - lastWaterLevel) / (float)(deltaT);
+  lastWaterLevel = waterLevelReading;
   
   return waterLevel;
 }
@@ -128,8 +116,8 @@ void setup() {
   printPinOutputs();
 #endif
 
-  getWaterLevel();
   fillRate = -0.00001;
+  getWaterLevel(0);
 }
 
 void handleChange() {
@@ -153,9 +141,9 @@ void handleChange() {
 }
 
 void loop() {
-  getWaterLevel();
   unsigned long updateTime = millis();
   unsigned long deltaT = updateTime - lastUpdateTimeMillis;
+  getWaterLevel(deltaT);
   toMove -= (long)(deltaT) * valveMotionState;
   Serial.print("deltaT: ");
   Serial.println(deltaT);
@@ -164,5 +152,4 @@ void loop() {
   pendingAdjustments = (pendingAdjustments + (float)(deltaT) * valveMotionState) * pow(0.5, (float)(deltaT) / kStreamLagMillis);
   handleChange();
   lastUpdateTimeMillis = updateTime;
-  delay(kPollingInterval);
 }
