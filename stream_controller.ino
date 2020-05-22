@@ -1,5 +1,9 @@
 // #define DEBUG_PINS  // Use to debug individual readings from each pin. Outputs for Serial Plotter.
 #define DEBUG_VARS  // Use to debug full set of variables. Outputs in text for Serial Monitor.
+// #define DEBUG_BINARY  // Send out raw binary data at high speed for reading by a customized program. Do not use in combination with either other DEBUG variable.
+#ifdef DEBUG_BINARY
+#  define WRITE(x) Serial.write(&x, sizeof(x))
+#endif
 const byte kBaseWaterPin = 2;
 const byte kMaxWaterPin = 13;
 const byte kShutPin = A1;
@@ -58,6 +62,10 @@ float getWaterLevel(unsigned long deltaT) {
   Serial.println(waterLevel);
   Serial.print("waterLevelReading: ");
   Serial.println(waterLevelReading);
+#endif
+#ifdef DEBUG_BINARY
+  WRITE(waterLevel);
+  WRITE(waterLevelReading);
 #endif
   fillRate = (waterLevelReading - lastWaterLevel) / (float)(deltaT);
   lastWaterLevel = waterLevelReading;
@@ -123,6 +131,8 @@ void setup() {
 #if defined(DEBUG_VARS) || defined(DEBUG_PINS)
   Serial.begin(9600);
   Serial.println("Started.");
+#elif defined(DEBUG_BINARY)
+  Serial.begin(115200);
 #endif
 #ifdef DEBUG_PINS
   printPinOutputs();
@@ -152,6 +162,16 @@ void handleChange() {
   Serial.println(pendingAdjustments);
   Serial.print("adjDeadZone: ");
   Serial.println(adjDeadZone);
+#endif
+#ifdef DEBUG_BINARY
+  WRITE(toMove);
+  WRITE(toMoveActual);
+  WRITE(lastWaterLevel);
+  WRITE(targetFillRate);
+  WRITE(fillRate);
+  WRITE(tarketAdjustment);
+  WRITE(pendingAdjustments);
+  WRITE(adjDeadZone);
 #endif
   moveValve(targetAdjustment);
 }
