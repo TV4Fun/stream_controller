@@ -162,10 +162,12 @@ void loop() {
   getWaterLevel(deltaT);
   toMove -= (long)(deltaT) * valveMotionState;
   toMoveActual -= (float)(deltaT) * valveMotionState;
-  Serial.print("deltaT: ");
-  Serial.println(deltaT);
-  Serial.print("valveMotionState: ");
-  Serial.println(valveMotionState);
+  #ifdef DEBUG_VARS
+    Serial.print("deltaT: ");
+    Serial.println(deltaT);
+    Serial.print("valveMotionState: ");
+    Serial.println(valveMotionState);
+  #endif
   pendingAdjustments = (pendingAdjustments + (float)(deltaT) * valveMotionState) * pow(0.5, (float)(deltaT) / kStreamLagMillis);
   //adjDeadZone *= pow(0.5, (float)(deltaT) / 2000.0);
   handleChange();
