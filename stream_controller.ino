@@ -1,5 +1,5 @@
-// #define DEBUG_PINS  // Use to debug individual readings from each pin
-#define DEBUG_VARS  // Use to debug full set of variables
+// #define DEBUG_PINS  // Use to debug individual readings from each pin. Outputs for Serial Plotter.
+#define DEBUG_VARS  // Use to debug full set of variables. Outputs in text for Serial Monitor.
 const byte kBaseWaterPin = 2;
 const byte kMaxWaterPin = 13;
 const byte kShutPin = A1;
