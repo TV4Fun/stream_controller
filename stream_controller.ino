@@ -11,6 +11,8 @@ const float kValveMoveTimeMillis = 3500.0;  // Time to fully open or shut the va
 const int kAdjDeadZone = 250;  // Set a minimum adjustment to avoid making a lot of tiny changes
 const float kFullOpenFillRate = 15.0 / 45000.0;
 const float kReadingAlpha = 0.1;  // Blend reading changes to reduce noise. 1 -> Always use latest reading.
+const byte kBaseWaterLevel = 1;  // Lowest water level that can be read.
+const float kBaseFillRate = -0.00001;  // Fill rate with no water input.
 
 enum {
   STOPPED = 0,
@@ -42,7 +44,7 @@ float getWaterLevel(unsigned long deltaT) {
   #ifdef DEBUG_PINS
     printPinOutputs();
   #endif
-  int waterLevel = 1;
+  int waterLevel = kBaseWaterLevel;
   for (byte pin = kBaseWaterPin; pin <= kMaxWaterPin; ++pin) {
     if (digitalRead(pin) == LOW)
       ++waterLevel;
@@ -116,8 +118,8 @@ void setup() {
   printPinOutputs();
 #endif
 
-  fillRate = -0.00001;
   getWaterLevel(0);
+  fillRate = kBaseFillRate;
 }
 
 void handleChange() {
