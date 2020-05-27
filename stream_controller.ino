@@ -1,8 +1,8 @@
 // #define DEBUG_PINS  // Use to debug individual readings from each pin. Outputs for Serial Plotter.
-#define DEBUG_VARS  // Use to debug full set of variables. Outputs in text for Serial Monitor.
-// #define DEBUG_BINARY  // Send out raw binary data at high speed for reading by a customized program. Do not use in combination with either other DEBUG variable.
+// #define DEBUG_VARS  // Use to debug full set of variables. Outputs in text for Serial Monitor.
+#define DEBUG_BINARY  // Send out raw binary data at high speed for reading by a customized program. Do not use in combination with either other DEBUG variable.
 #ifdef DEBUG_BINARY
-#  define WRITE(x) Serial.write(&x, sizeof(x))
+#  define WRITE(x) Serial.write((byte*)(&x), sizeof(x))
 #endif
 const byte kBaseWaterPin = 2;
 const byte kMaxWaterPin = 13;
@@ -187,8 +187,11 @@ void loop() {
     Serial.println(valveMotionState);
   #endif
   #ifdef DEBUG_BINARY
+    const unsigned long kSentinel = 0xDEADBEEF;
+    WRITE(kSentinel);
+    WRITE(updateTime);
     WRITE(deltaT);
-    WRITE valveMotionState);
+    WRITE(valveMotionState);
   #endif
 
   lastUpdateTimeMillis = updateTime;
