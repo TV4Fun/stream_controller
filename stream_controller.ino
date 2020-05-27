@@ -27,10 +27,6 @@ enum {
   OPENING = 1
 } valveMotionState = STOPPED;
 
-unsigned long lastUpdateTimeMillis = 0;
-byte lastWaterLevel = 0;
-long toMove = 0;
-
 #ifdef DEBUG_PINS
 void printPinOutputs() {
     for (byte pin = kBaseWaterPin; pin <= kMaxWaterPin; ++pin) {
@@ -40,7 +36,6 @@ void printPinOutputs() {
         Serial.print(0);
       Serial.print(' ');
   }
-  Serial.print(lastWaterLevel);
   Serial.print('\n');
 }
 #endif
@@ -61,7 +56,7 @@ byte getWaterLevel() {
 float getDampenedWaterLevel(unsigned long deltaT) {
   byte waterLevel = getWaterLevel();
   float deltaTSeconds = (float)(deltaT) / 1000.0;
-  float waterLevelReading = pow(kReadingAlpha, deltaTSeconds) *(float)waterLevel + pow(1.0 - kReadingAlpha, deltaTSeconds) * lastWaterLevel;
+  float waterLevelReading = pow(kReadingAlpha, deltaTSeconds) *(float)waterLevel + pow(1.0 - kReadingAlpha, deltaTSeconds) * lastWaterLevelReading;
 #ifdef DEBUG_VARS
   Serial.print("waterLevel: ");
   Serial.println(waterLevel);
@@ -106,6 +101,7 @@ void stopValve() {
 }
 
 void moveValve(long ms) {
+  static long toMove = 0;
 #ifdef DEBUG_VARS
   Serial.print("moveValve: ");
   Serial.println(ms);
@@ -121,6 +117,10 @@ void moveValve(long ms) {
   {
     stopValve();
   }
+
+#ifdef DEBUG_BINARY
+  WRITE(toMove);
+#endif
 }
 
 void setup() {
@@ -176,8 +176,16 @@ float getServoGain(float error, unsigned long deltaT) {
 }
 
 void loop() {
+  static unsigned long lastUpdateTimeMillis = 0;
   unsigned long updateTime = millis();
   unsigned long deltaT = updateTime - lastUpdateTimeMillis;
+#ifdef DEBUG_BINARY
+  const unsigned long kSentinel = 0xDEADBEEF;
+  WRITE(kSentinel);
+  WRITE(updateTime);
+  WRITE(deltaT);
+  WRITE(valveMotionState);
+#endif
   float error = kTargetWaterLevel - getDampenedWaterLevel(deltaT);
   moveValve(getServoGain(error, deltaT));
   #ifdef DEBUG_VARS
@@ -185,13 +193,6 @@ void loop() {
     Serial.println(deltaT);
     Serial.print("valveMotionState: ");
     Serial.println(valveMotionState);
-  #endif
-  #ifdef DEBUG_BINARY
-    const unsigned long kSentinel = 0xDEADBEEF;
-    WRITE(kSentinel);
-    WRITE(updateTime);
-    WRITE(deltaT);
-    WRITE(valveMotionState);
   #endif
 
   lastUpdateTimeMillis = updateTime;
