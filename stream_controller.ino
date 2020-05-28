@@ -56,7 +56,8 @@ byte getWaterLevel() {
 float getDampenedWaterLevel(unsigned long deltaT) {
   byte waterLevel = getWaterLevel();
   float deltaTSeconds = (float)(deltaT) / 1000.0;
-  float waterLevelReading = pow(kReadingAlpha, deltaTSeconds) *(float)waterLevel + pow(1.0 - kReadingAlpha, deltaTSeconds) * lastWaterLevelReading;
+  float alpha = pow(kReadingAlpha, deltaTSeconds);
+  float waterLevelReading = alpha * (float)waterLevel + (1.0 - alpha) * lastWaterLevelReading;
 #ifdef DEBUG_VARS
   Serial.print("waterLevel: ");
   Serial.println(waterLevel);
