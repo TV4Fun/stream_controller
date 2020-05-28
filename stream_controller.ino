@@ -147,8 +147,8 @@ void setup() {
 }
 
 float getServoGain(float error, unsigned long deltaT) {
-  const static float kIGain = -1.0;
-  const static float kI2Gain = -1.0;
+  const static float kIGain = -1.0 / kStreamLagMillis;
+  const static float kI2Gain = kIGain / kStreamLagMillis;
   const static float kPGain = -1.0;
   const static float kDGain = -1.0;
   const static float kD2Gain = 1.0;
