@@ -156,10 +156,10 @@ float getServoGain(float error, unsigned long deltaT) {
   static float lastError = 0.0;
   static float i = 0.0;
   static float i2 = 0.0;
-  static float lastD = kBaseFillRate;
+  static float lastD = 0.0;
 
-  float d = (error - lastError) / deltaT;
-  float d2 = (d - lastD) / deltaT;
+  float d = deltaT == 0 ? 0.0 : (error - lastError) / deltaT;
+  float d2 =  deltaT == 0 ? 0.0 : (d - lastD) / deltaT;
   i += error * deltaT;
   i2 += i * deltaT;
 
