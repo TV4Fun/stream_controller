@@ -1,5 +1,5 @@
 // #define DEBUG_PINS  // Use to debug individual readings from each pin. Outputs for Serial Plotter.
-// #define DEBUG_VARS  // Use to debug full set of variables. Outputs in text for Serial Monitor.
+// #define DEBUG_VARS  // Use to debug full set of variables. Outputs in text for Serial Monitor. Note that each output takes about 200ms, which can change the behavior of your controller a lot.
 #define DEBUG_BINARY  // Send out raw binary data at high speed for reading by a customized program. Do not use in combination with either other DEBUG variable.
 #ifdef DEBUG_BINARY
 #  define WRITE(x) Serial.write((byte*)(&x), sizeof(x))
