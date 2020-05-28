@@ -165,6 +165,7 @@ float getServoGain(float error, unsigned long deltaT) {
 
   lastError = error;
   lastD = d;
+  float activation = i2 * kI2Gain + i * kIGain + error * kPGain + d * kDGain + d2 * kD2Gain;
 
 #ifdef DEBUG_BINARY
   WRITE(i2);
@@ -172,9 +173,10 @@ float getServoGain(float error, unsigned long deltaT) {
   WRITE(error);
   WRITE(d);
   WRITE(d2);
+  WRITE(activation);
 #endif
 
-  return i2 * kI2Gain + i * kIGain + error * kPGain + d * kDGain + d2 * kD2Gain;
+  return activation;
 }
 
 void loop() {
