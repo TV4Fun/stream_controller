@@ -184,8 +184,10 @@ void loop() {
   unsigned long updateTime = millis();
   unsigned long deltaT = updateTime - lastUpdateTimeMillis;
 #ifdef DEBUG_BINARY
-  const unsigned long kSentinel = 0xDEADBEEF;
-  WRITE(kSentinel);
+  Serial.write(0xDE);
+  Serial.write(0xAD);
+  Serial.write(0xBE);
+  Serial.write(0xEF);
   WRITE(updateTime);
   WRITE(deltaT);
   WRITE(valveMotionState);
