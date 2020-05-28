@@ -108,7 +108,7 @@ void moveValve(float ms, unsigned long deltaT) {
   Serial.println(ms);
 #endif
 
-  toMove = constrain((float)(toMove + valveMotionState * (long)(deltaT)) + ms, -kValveMoveTimeMillis, kValveMoveTimeMillis);  // Avoid making ridiculously large adjustments.
+  toMove = constrain((float)(toMove + valveMotionState * (long)(deltaT)) + ms * (float)(deltaT) / 1000.0, -kValveMoveTimeMillis, kValveMoveTimeMillis);  // Avoid making ridiculously large adjustments.
   if (toMove <= -kAdjDeadZone) {
     shutValve();
   }
