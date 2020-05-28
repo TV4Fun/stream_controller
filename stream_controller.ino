@@ -101,13 +101,14 @@ void stopValve() {
   valveMotionState = STOPPED;
 }
 
-void moveValve(long ms) {
+void moveValve(float ms, unsigned long deltaT) {
   static long toMove = 0;
 #ifdef DEBUG_VARS
   Serial.print("moveValve: ");
   Serial.println(ms);
 #endif
-  toMove = constrain(toMove + ms, -kValveMoveTimeMillis, kValveMoveTimeMillis);  // Avoid making ridiculously large adjustments.
+
+  toMove = constrain((float)(toMove + valveMotionState * (long)(deltaT)) + ms, -kValveMoveTimeMillis, kValveMoveTimeMillis);  // Avoid making ridiculously large adjustments.
   if (toMove <= -kAdjDeadZone) {
     shutValve();
   }
@@ -187,14 +188,14 @@ void loop() {
   WRITE(deltaT);
   WRITE(valveMotionState);
 #endif
-  float error = kTargetWaterLevel - getDampenedWaterLevel(deltaT);
-  moveValve(getServoGain(error, deltaT));
-  #ifdef DEBUG_VARS
-    Serial.print("deltaT: ");
-    Serial.println(deltaT);
-    Serial.print("valveMotionState: ");
-    Serial.println(valveMotionState);
-  #endif
+  float error = getDampenedWaterLevel(deltaT) - kTargetWaterLevel;
+  moveValve(getServoGain(error, deltaT), deltaT);
+#ifdef DEBUG_VARS
+  Serial.print("deltaT: ");
+  Serial.println(deltaT);
+  Serial.print("valveMotionState: ");
+  Serial.println(valveMotionState);
+#endif
 
   lastUpdateTimeMillis = updateTime;
   delay(kPollingInterval);
