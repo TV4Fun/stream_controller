@@ -148,7 +148,9 @@ void setup() {
 
 float getServoGain(float error, float deltaT) {
   const static float kIGain = -1.0 / kStreamLag;
+  const static float kIAlpha = 0.9;  // Exponent to reduce integral by per time 1 -> do not reduce over time.
   const static float kI2Gain = kIGain / kStreamLag;
+  const static float kI2Alpha = 0.9;  // Exponent to reduce second integral by per time 1 -> do not reduce over time.
   const static float kPGain = -1.0;
   const static float kDGain = -kStreamLag / kFullOpenFillRate;
   const static float kD2Gain = kDGain / kFullOpenFillRate;
@@ -160,8 +162,8 @@ float getServoGain(float error, float deltaT) {
 
   float d = deltaT == 0 ? 0.0 : (error - lastError) / deltaT;
   float d2 =  deltaT == 0 ? 0.0 : (d - lastD) / deltaT;
-  i += error * deltaT;
-  i2 += i * deltaT;
+  i = i * pow(kIAlpha, deltaT) + error * deltaT;
+  i2 = i2 * pow(kI2Alpha, deltaT) + i * deltaT;
 
   lastError = error;
   lastD = d;
