@@ -9,15 +9,16 @@ const byte kMaxWaterPin = 13;
 const byte kShutPin = A1;
 const byte kMovePin = A0;
 
+// All times are in second unless otherwise specified.
 const float kTargetWaterLevel = 9.0;
-const float kStreamLagMillis = 35000.0;  // Time from when a valve is adjusted to when we expect to see a change.
-const float kValveMoveTimeMillis = 3500.0;  // Time to fully open or shut the valve
-const float kFullOpenFillRate = 15.0 / 45000.0;
+const float kStreamLag = 35.0;  // Time from when a valve is adjusted to when we expect to see a change.
+const float kValveMoveTime = 3.5;  // Time to fully open or shut the valve
+const float kFullOpenFillRate = 15.0 / 45.0;
 const float kReadingAlpha = 0.1;  // Blend reading changes to reduce noise. 1 -> Always use latest reading.
 const byte kBaseWaterLevel = 1;  // Lowest water level that can be read.
-const float kBaseFillRate = -0.00001;  // Fill rate with no water input.
-const float kAdjDeadZone = 250.0;  // Set a minimum adjustment to avoid making a lot of tiny changes. Make it variable so we can still fine tune.
-const long kPollingInterval = 25;
+const float kBaseFillRate = -0.1;  // Fill rate with no water input.
+const float kAdjDeadZone = 0.25;  // Set a minimum adjustment to avoid making a lot of tiny changes. Make it variable so we can still fine tune.
+const unsigned long kPollingIntervalMillis = 25;
 
 float lastWaterLevelReading;
 
@@ -53,10 +54,9 @@ byte getWaterLevel() {
   return waterLevel;
 }
 
-float getDampenedWaterLevel(unsigned long deltaT) {
+float getDampenedWaterLevel(float deltaT) {
   byte waterLevel = getWaterLevel();
-  float deltaTSeconds = (float)(deltaT) / 1000.0;
-  float alpha = pow(kReadingAlpha, deltaTSeconds);
+  float alpha = pow(kReadingAlpha, deltaT);
   float waterLevelReading = alpha * (float)waterLevel + (1.0 - alpha) * lastWaterLevelReading;
 #ifdef DEBUG_VARS
   Serial.print("waterLevel: ");
@@ -101,14 +101,14 @@ void stopValve() {
   valveMotionState = STOPPED;
 }
 
-void moveValve(float ms, unsigned long deltaT) {
+void moveValve(float seconds, float deltaT) {
   static float toMove = 0.0;
 #ifdef DEBUG_VARS
   Serial.print("moveValve: ");
-  Serial.println(ms);
+  Serial.println(seconds);
 #endif
 
-  toMove = constrain((float)(toMove - valveMotionState * (float)(deltaT)) + ms * (float)(deltaT) / 1000.0, -kValveMoveTimeMillis, kValveMoveTimeMillis);  // Avoid making ridiculously large adjustments.
+  toMove = constrain(toMove + (seconds - valveMotionState) * deltaT, -kValveMoveTime, kValveMoveTime);  // Avoid making ridiculously large adjustments.
   if (toMove <= -kAdjDeadZone) {
     shutValve();
   }
@@ -146,12 +146,12 @@ void setup() {
   lastWaterLevelReading = getWaterLevel();
 }
 
-float getServoGain(float error, unsigned long deltaT) {
-  const static float kIGain = -1.0 / kStreamLagMillis;
-  const static float kI2Gain = kIGain / kStreamLagMillis;
+float getServoGain(float error, float deltaT) {
+  const static float kIGain = -1.0 / kStreamLag;
+  const static float kI2Gain = kIGain / kStreamLag;
   const static float kPGain = -1.0;
-  const static float kDGain = -1.0;
-  const static float kD2Gain = 1.0;
+  const static float kDGain = -kStreamLag / kFullOpenFillRate;
+  const static float kD2Gain = kDGain / kFullOpenFillRate;
 
   static float lastError = 0.0;
   static float i = 0.0;
@@ -182,7 +182,7 @@ float getServoGain(float error, unsigned long deltaT) {
 void loop() {
   static unsigned long lastUpdateTimeMillis = 0;
   unsigned long updateTime = millis();
-  unsigned long deltaT = updateTime - lastUpdateTimeMillis;
+  float deltaT = (float)(updateTime - lastUpdateTimeMillis) / 1000.0;
 #ifdef DEBUG_BINARY
   Serial.write(0xDE);
   Serial.write(0xAD);
@@ -202,5 +202,5 @@ void loop() {
 #endif
 
   lastUpdateTimeMillis = updateTime;
-  delay(kPollingInterval);
+  delay(kPollingIntervalMillis);
 }
