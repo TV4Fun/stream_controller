@@ -1,6 +1,6 @@
 // #define DEBUG_PINS  // Use to debug individual readings from each pin. Outputs for Serial Plotter.
 // #define DEBUG_VARS  // Use to debug full set of variables. Outputs in text for Serial Monitor. Note that each output takes about 200ms, which can change the behavior of your controller a lot.
-#define DEBUG_BINARY  // Send out raw binary data at high speed for reading by a customized program. Do not use in combination with either other DEBUG variable.
+// #define DEBUG_BINARY  // Send out raw binary data at high speed for reading by a customized program. Do not use in combination with either other DEBUG variable.
 #ifdef DEBUG_BINARY
 #  define WRITE(x) Serial.write((byte*)(&x), sizeof(x))
 #endif
@@ -14,13 +14,14 @@ const float kTargetWaterLevel = 9.0;
 const float kStreamLag = 35.0;  // Time from when a valve is adjusted to when we expect to see a change.
 const float kValveMoveTime = 3.5;  // Time to fully open or shut the valve
 const float kFullOpenFillRate = 15.0 / 45.0;
-const float kReadingAlpha = 0.1;  // Blend reading changes to reduce noise. 1 -> Always use latest reading.
+const float kReadingAlpha = 0.99;  // Blend reading changes to reduce noise. 0 -> Always use latest reading.
 const byte kBaseWaterLevel = 1;  // Lowest water level that can be read.
 const float kBaseFillRate = -0.1;  // Fill rate with no water input.
 const float kAdjDeadZone = 0.25;  // Set a minimum adjustment to avoid making a lot of tiny changes. Make it variable so we can still fine tune.
 const unsigned long kPollingIntervalMillis = 25;
 
 float lastWaterLevelReading;
+float estPosition = 0.0;
 
 enum {
   STOPPED = 0,
@@ -57,7 +58,7 @@ byte getWaterLevel() {
 float getDampenedWaterLevel(float deltaT) {
   byte waterLevel = getWaterLevel();
   float alpha = pow(kReadingAlpha, deltaT);
-  float waterLevelReading = alpha * (float)waterLevel + (1.0 - alpha) * lastWaterLevelReading;
+  float waterLevelReading = (1.0 - alpha) * (float)waterLevel + alpha * lastWaterLevelReading;
 #ifdef DEBUG_VARS
   Serial.print("waterLevel: ");
   Serial.println(waterLevel);
@@ -108,7 +109,10 @@ void moveValve(float seconds, float deltaT) {
   Serial.println(seconds);
 #endif
 
-  toMove = constrain(toMove + (seconds - valveMotionState) * deltaT, -kValveMoveTime, kValveMoveTime);  // Avoid making ridiculously large adjustments.
+  float oldToMove = toMove;
+  toMove = constrain(toMove + seconds - valveMotionState * deltaT, -kValveMoveTime, kValveMoveTime);  // Avoid making ridiculously large adjustments.
+  estPosition += constrain(toMove + seconds, -kValveMoveTime, kValveMoveTime) - toMove;
+  estPosition = constrain(estPosition, 0.0, kValveMoveTime);  // Keep our estimate of valve positon to where it is physically possible to be.
   if (toMove <= -kAdjDeadZone) {
     shutValve();
   }
@@ -122,6 +126,7 @@ void moveValve(float seconds, float deltaT) {
 
 #ifdef DEBUG_BINARY
   WRITE(toMove);
+  WRITE(estPosition);
 #endif
 }
 
@@ -147,13 +152,14 @@ void setup() {
 }
 
 float getServoGain(float error, float deltaT) {
-  const static float kIGain = -1.0 / kStreamLag;
+  const static float kIGain = 1.0 / kStreamLag;
   const static float kIAlpha = 0.9;  // Exponent to reduce integral by per time 1 -> do not reduce over time.
   const static float kI2Gain = kIGain / kStreamLag;
   const static float kI2Alpha = 0.9;  // Exponent to reduce second integral by per time 1 -> do not reduce over time.
-  const static float kPGain = -1.0;
-  const static float kDGain = -kStreamLag / kFullOpenFillRate;
-  const static float kD2Gain = kDGain / kFullOpenFillRate;
+  const static float kPGain = -0.1;
+  const static float kPosGain = -0.2;
+  const static float kDGain = -kStreamLag / kFullOpenFillRate / 10.0;
+  const static float kD2Gain = 0.0; // kDGain / kFullOpenFillRate;
 
   static float lastError = 0.0;
   static float i = 0.0;
@@ -167,7 +173,7 @@ float getServoGain(float error, float deltaT) {
 
   lastError = error;
   lastD = d;
-  float activation = i2 * kI2Gain + i * kIGain + error * kPGain + d * kDGain + d2 * kD2Gain;
+  float activation = /*i2 * kI2Gain + i * kIGain +*/ error * kPGain + d * kDGain + d2 * kD2Gain + kPosGain * estPosition;
 
 #ifdef DEBUG_BINARY
   WRITE(i2);
